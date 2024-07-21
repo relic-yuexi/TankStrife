@@ -22,39 +22,47 @@ WHITE = (255, 255, 255)
 
 # 坦克类
 class Tank:
-    def __init__(self, x, y, color, control_keys):
-        self.x = x
-        self.y = y
+    def __init__(self, center_x, center_y, color, control_keys):
+        self.center_x = center_x
+        self.center_y = center_y
         self.color = color
         self.speed = 3
         self.size = 40
         self.angle = 0
         self.control_keys = control_keys
+        self.alive = True
+        self.barrel_length = 40
 
     def move(self, dx, dy):
-        self.x += dx * self.speed
-        self.y += dy * self.speed
-        self.x = max(0, min(self.x, WIDTH - self.size))
-        self.y = max(0, min(self.y, HEIGHT - self.size))
+        self.center_x += dx * self.speed
+        self.center_y += dy * self.speed
+        self.center_x = max(self.size / 2, min(self.center_x, WIDTH - self.size / 2))
+        self.center_y = max(self.size / 2, min(self.center_y, HEIGHT - self.size / 2))
         if dx != 0 or dy != 0:
             self.angle = math.atan2(dy, dx)
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.size, self.size))
-        end_x = self.x + self.size / 2 + math.cos(self.angle) * self.size
-        end_y = self.y + self.size / 2 + math.sin(self.angle) * self.size
-        pygame.draw.line(
-            screen,
-            BLACK,
-            (self.x + self.size / 2, self.y + self.size / 2),
-            (end_x, end_y),
-            5,
-        )
+        if self.alive:
+            x = self.center_x - self.size / 2
+            y = self.center_y - self.size / 2
+            pygame.draw.rect(screen, self.color, (x, y, self.size, self.size))
+            end_x = self.center_x + math.cos(self.angle) * self.barrel_length
+            end_y = self.center_y + math.sin(self.angle) * self.barrel_length
+            pygame.draw.line(
+                screen,
+                BLACK,
+                (self.center_x, self.center_y),
+                (end_x, end_y),
+                5,
+            )
 
     def fire(self):
-        return Bullet(
-            self.x + self.size / 2, self.y + self.size / 2, self.angle, self.color
-        )
+        if self.alive:
+            # 计算炮弹的初始位置，使得炮弹从坦克的炮筒外射出
+            x = self.center_x + self.barrel_length * math.cos(self.angle)
+            y = self.center_y + self.barrel_length * math.sin(self.angle)
+            return Bullet(x, y, self.angle, self.color)
+        return None
 
 
 # 子弹类
@@ -65,13 +73,14 @@ class Bullet:
         self.angle = angle
         self.speed = 7
         self.color = color
+        self.radius = 5
 
     def move(self):
         self.x += math.cos(self.angle) * self.speed
         self.y += math.sin(self.angle) * self.speed
 
     def draw(self):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), 5)
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
 
 
 # 障碍物类
@@ -127,16 +136,21 @@ while True:
             sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == tank1.control_keys["fire"]:
-                bullets.append(tank1.fire())
+                new_bullet = tank1.fire()
+                if new_bullet:
+                    bullets.append(new_bullet)
             elif event.key == tank2.control_keys["fire"]:
-                bullets.append(tank2.fire())
+                new_bullet = tank2.fire()
+                if new_bullet:
+                    bullets.append(new_bullet)
 
     # 移动坦克
     for tank in [tank1, tank2]:
-        keys = pygame.key.get_pressed()
-        dx = keys[tank.control_keys["right"]] - keys[tank.control_keys["left"]]
-        dy = keys[tank.control_keys["down"]] - keys[tank.control_keys["up"]]
-        tank.move(dx, dy)
+        if tank.alive:
+            keys = pygame.key.get_pressed()
+            dx = keys[tank.control_keys["right"]] - keys[tank.control_keys["left"]]
+            dy = keys[tank.control_keys["down"]] - keys[tank.control_keys["up"]]
+            tank.move(dx, dy)
 
     # 移动子弹
     for bullet in bullets[:]:
