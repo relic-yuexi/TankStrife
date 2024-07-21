@@ -8,13 +8,12 @@
 ## Version 0.2
 - Implement tank bullet firing functionality
 - Add simple obstacles (indestructible)
-
 - Add enemy tanks (player-controlled)
 
 ## Version 0.3
 - Implement bullet collision detection (with tanks and obstacles)
 - Implement tanks disappearing when hit by bullets
-- Add simple game over logic
+- Add simple game over logic and restrat game logic
 
 ## Version 0.4
 - Improve game interface, add score display
