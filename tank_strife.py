@@ -19,6 +19,9 @@ RED = (255, 0, 0)
 GRAY = (128, 128, 128)
 WHITE = (255, 255, 255)
 
+# 字体
+font = pygame.font.Font(None, 36)
+
 
 # 坦克类
 class Tank:
@@ -37,6 +40,8 @@ class Tank:
         )
 
     def move(self, dx, dy, obstacles, other_tank):
+        if not self.alive:
+            return
         new_x = self.center_x + dx * self.speed
         new_y = self.center_y + dy * self.speed
         new_rect = pygame.Rect(
@@ -82,6 +87,15 @@ class Tank:
             y = self.center_y + self.barrel_length * math.sin(self.angle)
             return Bullet(x, y, self.angle, self.color)
         return None
+
+    def reset(self, center_x, center_y):
+        self.center_x = center_x
+        self.center_y = center_y
+        self.angle = 0
+        self.alive = True
+        self.rect = pygame.Rect(
+            center_x - self.size / 2, center_y - self.size / 2, self.size, self.size
+        )
 
 
 # 子弹类
@@ -159,39 +173,74 @@ obstacles = [
 
 bullets = []
 
+
+def reset_game():
+    tank1.reset(100, HEIGHT // 2)
+    tank2.reset(WIDTH - 140, HEIGHT // 2)
+    bullets.clear()
+
+
+def draw_game_over():
+    game_over_text = font.render("GAME OVER", True, RED)
+    winner_text = font.render(
+        "Green Wins!" if not tank2.alive else "Blue Wins!", True, BLACK
+    )
+    restart_text = font.render("Press R to restart", True, BLACK)
+
+    screen.blit(
+        game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 60)
+    )
+    screen.blit(winner_text, (WIDTH // 2 - winner_text.get_width() // 2, HEIGHT // 2))
+    screen.blit(
+        restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 60)
+    )
+
+
 # 游戏主循环
 clock = pygame.time.Clock()
+game_over = False
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
         elif event.type == pygame.KEYDOWN:
-            if event.key == tank1.control_keys["fire"]:
-                new_bullet = tank1.fire()
-                if new_bullet:
-                    bullets.append(new_bullet)
-            elif event.key == tank2.control_keys["fire"]:
-                new_bullet = tank2.fire()
-                if new_bullet:
-                    bullets.append(new_bullet)
+            if game_over:
+                if event.key == pygame.K_r:
+                    reset_game()
+                    game_over = False
+            else:
+                if event.key == tank1.control_keys["fire"]:
+                    new_bullet = tank1.fire()
+                    if new_bullet:
+                        bullets.append(new_bullet)
+                elif event.key == tank2.control_keys["fire"]:
+                    new_bullet = tank2.fire()
+                    if new_bullet:
+                        bullets.append(new_bullet)
 
-    # 移动坦克
-    for tank in [tank1, tank2]:
-        if tank.alive:
-            keys = pygame.key.get_pressed()
-            dx = keys[tank.control_keys["right"]] - keys[tank.control_keys["left"]]
-            dy = keys[tank.control_keys["down"]] - keys[tank.control_keys["up"]]
-            other_tank = tank2 if tank == tank1 else tank1
-            tank.move(dx, dy, obstacles, other_tank)
+    if not game_over:
+        # 移动坦克
+        for tank in [tank1, tank2]:
+            if tank.alive:
+                keys = pygame.key.get_pressed()
+                dx = keys[tank.control_keys["right"]] - keys[tank.control_keys["left"]]
+                dy = keys[tank.control_keys["down"]] - keys[tank.control_keys["up"]]
+                other_tank = tank2 if tank == tank1 else tank1
+                tank.move(dx, dy, obstacles, other_tank)
 
-    # 移动子弹并检测碰撞
-    for bullet in bullets[:]:
-        bullet.move()
-        if bullet.x < 0 or bullet.x > WIDTH or bullet.y < 0 or bullet.y > HEIGHT:
-            bullets.remove(bullet)
-        elif bullet.check_collision(obstacles, [tank1, tank2]):
-            bullets.remove(bullet)
+        # 移动子弹并检测碰撞
+        for bullet in bullets[:]:
+            bullet.move()
+            if bullet.x < 0 or bullet.x > WIDTH or bullet.y < 0 or bullet.y > HEIGHT:
+                bullets.remove(bullet)
+            elif bullet.check_collision(obstacles, [tank1, tank2]):
+                bullets.remove(bullet)
+
+        # 检查游戏是否结束
+        if not tank1.alive or not tank2.alive:
+            game_over = True
 
     # 绘制
     screen.fill(WHITE)
@@ -201,6 +250,10 @@ while True:
     tank2.draw()
     for bullet in bullets:
         bullet.draw()
+
+    if game_over:
+        draw_game_over()
+
     pygame.display.flip()
 
     # 控制帧率
