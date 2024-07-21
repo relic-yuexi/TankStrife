@@ -32,14 +32,34 @@ class Tank:
         self.control_keys = control_keys
         self.alive = True
         self.barrel_length = 40
+        self.rect = pygame.Rect(
+            center_x - self.size / 2, center_y - self.size / 2, self.size, self.size
+        )
 
-    def move(self, dx, dy):
-        self.center_x += dx * self.speed
-        self.center_y += dy * self.speed
+    def move(self, dx, dy, obstacles, other_tank):
+        new_x = self.center_x + dx * self.speed
+        new_y = self.center_y + dy * self.speed
+        new_rect = pygame.Rect(
+            new_x - self.size / 2, new_y - self.size / 2, self.size, self.size
+        )
+
+        if not self.check_collision(new_rect, obstacles, other_tank):
+            self.center_x = new_x
+            self.center_y = new_y
+            self.rect = new_rect
+
         self.center_x = max(self.size / 2, min(self.center_x, WIDTH - self.size / 2))
         self.center_y = max(self.size / 2, min(self.center_y, HEIGHT - self.size / 2))
         if dx != 0 or dy != 0:
             self.angle = math.atan2(dy, dx)
+
+    def check_collision(self, new_rect, obstacles, other_tank):
+        for obstacle in obstacles:
+            if new_rect.colliderect(obstacle.rect):
+                return True
+        if other_tank.alive and new_rect.colliderect(other_tank.rect):
+            return True
+        return False
 
     def draw(self):
         if self.alive:
@@ -58,7 +78,6 @@ class Tank:
 
     def fire(self):
         if self.alive:
-            # 计算炮弹的初始位置，使得炮弹从坦克的炮筒外射出
             x = self.center_x + self.barrel_length * math.cos(self.angle)
             y = self.center_y + self.barrel_length * math.sin(self.angle)
             return Bullet(x, y, self.angle, self.color)
@@ -81,6 +100,19 @@ class Bullet:
 
     def draw(self):
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+
+    def check_collision(self, obstacles, tanks):
+        bullet_rect = pygame.Rect(
+            self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2
+        )
+        for obstacle in obstacles:
+            if bullet_rect.colliderect(obstacle.rect):
+                return True
+        for tank in tanks:
+            if tank.alive and bullet_rect.colliderect(tank.rect):
+                tank.alive = False
+                return True
+        return False
 
 
 # 障碍物类
@@ -150,12 +182,15 @@ while True:
             keys = pygame.key.get_pressed()
             dx = keys[tank.control_keys["right"]] - keys[tank.control_keys["left"]]
             dy = keys[tank.control_keys["down"]] - keys[tank.control_keys["up"]]
-            tank.move(dx, dy)
+            other_tank = tank2 if tank == tank1 else tank1
+            tank.move(dx, dy, obstacles, other_tank)
 
-    # 移动子弹
+    # 移动子弹并检测碰撞
     for bullet in bullets[:]:
         bullet.move()
         if bullet.x < 0 or bullet.x > WIDTH or bullet.y < 0 or bullet.y > HEIGHT:
+            bullets.remove(bullet)
+        elif bullet.check_collision(obstacles, [tank1, tank2]):
             bullets.remove(bullet)
 
     # 绘制
