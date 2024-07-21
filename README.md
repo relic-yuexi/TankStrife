@@ -36,5 +36,7 @@ As this is a learning project, contributions, suggestions, and feedback are welc
 ### License
 This project is open source and available under the [MIT License](LICENSE).
 
+### Change Log
+- [Change Log](CHANGELOG.md)
 
 
