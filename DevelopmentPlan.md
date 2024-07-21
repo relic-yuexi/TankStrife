@@ -9,7 +9,10 @@
 - Implement tank bullet firing functionality
 - Add simple obstacles (indestructible)
 
+- Add enemy tanks (player-controlled)
+
 ## Version 0.3
+- Implement bullet collision detection (with tanks and obstacles)
 - Implement tanks disappearing when hit by bullets
 - Add simple game over logic
 
