@@ -1,5 +1,7 @@
 # Tank Strife 坦克纷争
 
+![](TankStrife.jpg)
+
 [English](#english) | [中文](README_cn.md)
 
 ### Project Description
@@ -38,5 +40,11 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ### Change Log
 - [Change Log](CHANGELOG.md)
+
+### Show
+
+Version 0.3
+
+![](docs\TankStrife-V0.3.gif)
 
 
